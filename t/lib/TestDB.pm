@@ -6,7 +6,7 @@ use utf8;
 
 use Moo;
 
-extends 'Revolver::Schema';
+extends 'Revolver';
 
 __PACKAGE__->load_model_and_rows;
 

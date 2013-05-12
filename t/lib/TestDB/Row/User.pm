@@ -13,7 +13,7 @@ my $pkg = __PACKAGE__;
 $pkg->table('user');
 
 #all parameters are optional
-$pkg->set_column_names('id', 'name', 'is_hoge', 'created_at', 'type');
+$pkg->add_columns('id', 'name', 'is_hoge', 'created_at', 'type');
 
 $pkg->set_column_extras(
    id => {

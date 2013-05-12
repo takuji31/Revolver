@@ -1,6 +1,6 @@
 # NAME
 
-Revolver - It's new $module
+Revolver - The O/R mapper
 
 # SYNOPSIS
 

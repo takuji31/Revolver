@@ -5,9 +5,12 @@ use warnings;
 
 our $VERSION = "0.01";
 
+use Carp ();
 use DBI;
 use DBIx::Handler;
+use Module::Find ();
 use Moo;
+use Sub::Install;
 
 has dbh_handler => (
     is => 'ro',
@@ -71,6 +74,48 @@ sub txn_manager {
         DBI::TransactionManager->new(dbh => $self->dbh);
     } else {
         $self->dbh_handler->txn_manager;
+    }
+}
+
+sub load_model_and_rows {
+    my ($class, ) = @_;
+    my @models = Module::Find::useall(join('::', $class, 'Model'));
+    my @rows = Module::Find::useall(join('::', $class, 'Row'));
+
+    my %model_map;
+    for my $model (@models) {
+        (my $name = $model)  =~ s{^$class\::Model::}{};
+        $model_map{$name} = $model;
+    }
+    my %row_map;
+    for my $row (@rows) {
+        (my $name = $row)  =~ s{^$class\::Row::}{};
+        $row_map{$name} = $row;
+    }
+
+    Sub::Install::reinstall_sub({code => sub {\%model_map}, into => $class, as => 'model_map'});
+    Sub::Install::reinstall_sub({code => sub {\%row_map}, into => $class, as => 'row_map'});
+}
+
+sub model {
+    my ($self, $subclass, @params) = @_;
+    my $model_class = $self->model_map->{$subclass} or Carp::croak("Model $subclass not found");
+    my $row_class = $self->row_map->{$subclass} or Carp::croak("Row $subclass not found");
+    return $model_class->new(db => $self, row_class => $row_class, @params);
+}
+
+#inspire from DBIx::Sunny and Teng
+sub last_insert_id {
+    my ($self, $table_name) = @_;
+    my $driver = $self->dbh->{Driver}->{Name};
+    if ($driver eq 'SQLite') {
+        return $self->dbh->func('last_insert_rowid');
+    } elsif ($driver eq 'mysql') {
+        return $self->dbh->{mysql_insertid};
+    } elsif ( $driver eq 'Pg' ) {
+        return $self->dbh->last_insert_id( undef, undef, undef, undef,{ sequence => join( '_', $table_name, 'id', 'seq' ) } );
+    } else {
+        Carp::croak('Cant get last insert id');
     }
 }
 

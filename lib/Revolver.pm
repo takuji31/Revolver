@@ -17,14 +17,6 @@ has dbh_coderef => (
     is => 'ro',
 );
 
-has model_map => (
-    is => 'rwp',
-);
-
-has row_map => (
-    is => 'rwp',
-);
-
 sub BUILDARGS {
     my $self = shift;
 
@@ -55,10 +47,15 @@ sub BUILDARGS {
             }
         }
 
-        @args = (dbh_handler => DBIx::Handler->new());
+        @args = (dbh_handler => DBIx::Handler->new($dsn, $user, $pass, $attr));
     }
 
-    return @args;
+    return {@args};
+}
+
+sub connect {
+    my $class = shift;
+    return $class->new(@_);
 }
 
 sub dbh {
